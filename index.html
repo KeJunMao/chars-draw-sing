@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fourier epicycles: draw and hear any character</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Music&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f1e7;--ink:#26211b;--dim:#7b7266;--coral:#d4452a;--teal:#12806a;--gold:#a97a00;--line:#ddd3c2;--ghost:rgba(60,44,28,.12);--fill:#e9a592;--panel:#fffaf0;--onc:#fff;--serif:'STIX Two Text','Times New Roman',serif;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#100f0e;--ink:#f1ead9;--dim:#8d867a;--coral:#ff6b4a;--teal:#7fd8c3;--gold:#f2c744;--line:#2b2824;--ghost:rgba(241,234,217,.13);--fill:#9a3b28;--panel:#161412;--onc:#1a0c08}}
+:root[data-theme="dark"]{--bg:#100f0e;--ink:#f1ead9;--dim:#8d867a;--coral:#ff6b4a;--teal:#7fd8c3;--gold:#f2c744;--line:#2b2824;--ghost:rgba(241,234,217,.13);--fill:#9a3b28;--panel:#161412;--onc:#1a0c08}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif}
+main{max-width:1160px;margin:0 auto;padding:14px 16px 32px}
+h1{font:400 21px/1.3 var(--serif);color:var(--dim);margin:2px 0 10px}
+.heading{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.heading h1{flex:1;min-width:240px;margin:2px 0}
+.heading select{font-size:14px}
+form{display:flex;gap:8px}
+#t{flex:1;min-width:0;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 14px;font:600 26px/1.3 var(--serif)}
+button,select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 14px;cursor:pointer}
+button.go{background:var(--coral);border-color:var(--coral);color:var(--onc);font-weight:600}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
+.chips button{padding:1px 13px;font:22px/1.5 var(--serif),'Noto Music'}
+#msg{min-height:22px;margin:2px 0 8px;color:var(--coral);font-size:14px}
+.stage{display:grid;gap:20px;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:start}
+@media(max-width:860px){.stage{grid-template-columns:1fr}.cv{aspect-ratio:1/1!important}}
+.cv{aspect-ratio:6/5;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden}
+#c{width:100%;height:100%;display:block}
+.big{font:400 64px/1.05 var(--serif)}.big b{color:var(--teal);font-weight:400}
+.err{font:400 30px/1.3 var(--serif)}
+.dots{display:flex;flex-wrap:wrap;gap:5px;margin:12px 0 14px}
+.dots button{padding:1px 10px;font-size:13px}
+.dots button[aria-current="true"]{background:var(--teal);border-color:var(--teal);color:var(--bg)}
+.eq{font:400 27px/1.55 var(--serif);margin:6px 0}
+.eq sub,.eq sup,.num sup,.num sub{font-size:.62em;line-height:0}
+.co{color:var(--coral)}.tl{color:var(--teal)}.go{color:var(--gold)}
+.num{font:400 19px/1.7 var(--serif);padding:10px 12px;border-left:3px solid var(--teal);background:var(--panel);margin:10px 0;overflow-wrap:anywhere}
+.dm{color:var(--dim)}
+#roll{width:100%;height:112px;display:block;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.cap{margin:4px 0 8px;font-size:12.5px;color:var(--dim)}
+.live{font:400 20px/1.4 var(--serif);min-height:30px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin-top:10px}
+.ctl label{display:flex;gap:6px;align-items:center;color:var(--dim);font-size:14px}
+.ctl input[type=range]{width:90px;accent-color:var(--teal)}
+#hint{font-size:13px;color:var(--dim);margin:8px 0 0}
+</style>
+</head>
+<body>
+<main>
+<div class="heading">
+ <h1 data-i18n="heading">Fourier epicycles: type any character, watch circles draw it, and hear them sing it</h1>
+ <select id="language" aria-label="Language" data-i18n-aria="language"><option value="zh" lang="zh-CN">简体中文</option><option value="en" lang="en">English</option></select>
+</div>
+<form id="f"><input id="t" value="𝄞" maxlength="12" autocomplete="off" aria-label="Enter any character" data-i18n-aria="input"><button class="go" data-i18n="generate">Generate</button></form>
+<div class="chips" id="chips"></div>
+<div id="msg" role="status"></div>
+<section class="stage">
+ <div class="cv"><canvas id="c"></canvas></div>
+ <aside>
+  <div class="big"><i>N</i> = <b id="N">1</b></div>
+  <div class="err"><span data-i18n="error">error</span> = <span id="E">–</span></div>
+  <div class="dots" id="dots" aria-label="Jump to a stage" data-i18n-aria="stages"></div>
+  <div class="eq">
+   <div><i class="co">z</i>(<i class="co">t</i>) = <span class="tl">∑<sub><i>k</i></sub> <i>c<sub>k</sub></i> <i>e</i><sup><i>ikt</i></sup></span></div>
+   <div><span class="go" data-i18n="note">note</span> = <span class="co">⌊|<i>z</i>(<i>t</i>)|⌋</span> <span data-i18n="scale">in C major</span></div>
+  </div>
+  <div class="num" id="num"></div>
+  <canvas id="roll"></canvas>
+  <div class="cap" data-i18n="caption">Gray blocks show the original shape's melody; dots show the melody played by the current N circles.</div>
+  <div class="live" id="live"></div>
+  <div class="ctl">
+   <button id="pp" type="button">Pause</button>
+   <button id="rp" type="button" data-i18n="replay">Replay</button>
+   <button id="mu" type="button">Sound: on</button>
+   <label><span data-i18n="speed">Speed</span> <input id="sp" type="range" min=".5" max="3" step=".5" value="1"></label>
+   <label><span data-i18n="maxCircles">Max circles</span> <select id="nm"><option>64<option>128<option selected>256<option>512<option>1024</select></label>
+  </div>
+  <p id="hint" data-i18n="hint">Tap anywhere on the page to enable sound.</p>
+ </aside>
+</section>
+</main>
+<script>
+//<pure
+const TAU=Math.PI*2,M=2048,TT=1200,NPL=24;
+function contours(m,W,H){
+  const nx=new Map(),kk=(x,y)=>y*4096+x;
+  for(let y=0;y<H-1;y++)for(let x=0,i=y*W;x<W-1;x++,i++){
+    const c=m[i]*8+m[i+1]*4+m[i+W+1]*2+m[i+W];if(!c||c==15)continue;
+    const a=2*x,b=2*y,T=kk(a+1,b),Rr=kk(a+2,b+1),B=kk(a+1,b+2),L=kk(a,b+1),s=(p,q)=>nx.set(p,q);
+    switch(c){case 8:s(T,L);break;case 4:s(Rr,T);break;case 2:s(B,Rr);break;case 1:s(L,B);break;case 7:s(L,T);break;case 11:s(T,Rr);break;case 13:s(Rr,B);break;case 14:s(B,L);break;case 12:s(Rr,L);break;case 3:s(L,Rr);break;case 9:s(T,B);break;case 6:s(B,T);break;case 5:s(Rr,T);s(L,B);break;case 10:s(T,L);s(B,Rr);break}
+  }
+  const out=[],seen=new Set();
+  for(const k0 of nx.keys()){if(seen.has(k0))continue;const p=[];let k=k0;
+    while(k!==undefined&&!seen.has(k)){seen.add(k);p.push([(k%4096)/2,Math.floor(k/4096)/2]);k=nx.get(k)}
+    if(k===k0)out.push(p)}
+  return out}
+const area=p=>{let a=0;for(let i=0,n=p.length;i<n;i++){const q=p[(i+1)%n];a+=p[i][0]*q[1]-q[0]*p[i][1]}return a/2};
+function smooth(p,it){for(;it>0;it--){const n=p.length,o=p;p=o.map((q,i)=>{const a=o[(i+n-1)%n],b=o[(i+1)%n];return[(a[0]+2*q[0]+b[0])/4,(a[1]+2*q[1]+b[1])/4]})}return p}
+// 多个轮廓 -> 一条闭合曲线：逐个走完轮廓，用直线桥接，最后沿原桥返回（桥被走两遍，面积为 0）
+function buildPath(loops){
+  loops=loops.filter(l=>l.length>8&&Math.abs(area(l))>12).map(l=>smooth(l,3));
+  if(!loops.length)return null;
+  let ci=0,lm=1e9;loops.forEach((l,i)=>{const m=l.reduce((a,p)=>Math.min(a,p[0]),1e9);if(m<lm){lm=m;ci=i}});
+  const cur=loops.splice(ci,1)[0],parts=[{p:cur.concat([cur[0]]),b:0}],es=[cur[0]];let e=cur[0];
+  while(loops.length){
+    let bd=1e18,bi=0,bj=0;
+    loops.forEach((l,i)=>l.forEach((q,j)=>{const d=(q[0]-e[0])**2+(q[1]-e[1])**2;if(d<bd){bd=d;bi=i;bj=j}}));
+    const l=loops.splice(bi,1)[0],r=l.slice(bj).concat(l.slice(0,bj));
+    parts.push({p:[e,r[0]],b:1},{p:r.concat([r[0]]),b:0});e=r[0];es.push(e);
+  }
+  for(let i=es.length-1;i>0;i--)parts.push({p:[es[i],es[i-1]],b:1});
+  const P=[],F=[];parts.forEach(q=>q.p.slice(0,-1).forEach(p=>{P.push(p);F.push(q.b)}));P.push(P[0]);
+  const cl=[0];for(let i=0;i<P.length-1;i++)cl.push(cl[i]+Math.hypot(P[i+1][0]-P[i][0],P[i+1][1]-P[i][1]));
+  const tot=cl[cl.length-1],pts=[],fl=new Uint8Array(M);let j=0;
+  for(let m=0;m<M;m++){const s=tot*m/M;while(cl[j+1]<s)j++;const f=(s-cl[j])/((cl[j+1]-cl[j])||1);
+    pts.push([P[j][0]+(P[j+1][0]-P[j][0])*f,P[j][1]+(P[j+1][1]-P[j][1])*f]);fl[m]=F[j]}
+  return{pts,fl}}
+function analyze(pts,fl){
+  const n=pts.length,xs=new Float64Array(n),ys=new Float64Array(n),co=new Float64Array(n),sn=new Float64Array(n);
+  let cx=0,cy=0,x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  pts.forEach((p,i)=>{cx+=p[0];cy+=p[1];x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1])});cx/=n;cy/=n;
+  let tot=0,rmin=1e9,rmax=0;
+  pts.forEach((p,i)=>{xs[i]=p[0]-cx;ys[i]=p[1]-cy;co[i]=Math.cos(TAU*i/n);sn[i]=Math.sin(TAU*i/n);const r=Math.hypot(xs[i],ys[i]);tot+=r*r;rmin=Math.min(rmin,r);rmax=Math.max(rmax,r)});
+  tot/=n;const terms=[];
+  for(let k=-n/2+1;k<=n/2;k++){if(!k)continue;let re=0,im=0;
+    for(let i=0;i<n;i++){const j=(k*i)&(n-1),c=co[j],s=sn[j];re+=xs[i]*c+ys[i]*s;im+=ys[i]*c-xs[i]*s}
+    re/=n;im/=n;terms.push({k,a:Math.hypot(re,im),p:Math.atan2(im,re)})}
+  terms.sort((a,b)=>b.a-a.a);terms.length=1100;
+  const cum=[0];terms.forEach((q,i)=>cum.push(cum[i]+q.a*q.a));
+  return{pts,fl,c0:{x:cx,y:cy},terms,cum,tot,rmin,rmax,bcx:(x0+x1)/2,bcy:(y0+y1)/2,bw:x1-x0||1,bh:y1-y0||1}}
+const U=(S,x,y)=>Math.min(11.999,Math.max(0,12*(Math.hypot(x-S.c0.x,y-S.c0.y)-S.rmin)/((S.rmax-S.rmin)||1)));
+//pure>
+
+const $=s=>document.querySelector(s);
+const translations={
+  en:{title:'Fourier epicycles: draw and hear any character',heading:'Fourier epicycles: type any character, watch circles draw it, and hear them sing it',
+    language:'Language',input:'Enter any character',generate:'Generate',error:'error',stages:'Jump to a stage',note:'note',scale:'in C major',
+    caption:"Gray blocks show the original shape's melody; dots show the melody played by the current N circles.",
+    pause:'Pause',resume:'Resume',replay:'Replay',soundOn:'Sound: on',soundOff:'Sound: off',speed:'Speed',maxCircles:'Max circles',
+    hint:'Tap anywhere on the page to enable sound.',empty:'Enter a character first, such as 山, ♪, or π.',loading:'Tracing the outline…',
+    noOutline:'This character has no traceable outline. Try another one.',terms:'{count} terms total'},
+  zh:{title:'傅里叶本轮：任意字符的画与声',heading:'傅里叶本轮：输入任意字符，看它被圆画出来，听它被圆唱出来',
+    language:'语言',input:'输入任意字符',generate:'生成',error:'误差',stages:'跳到某一级',note:'音符',scale:'（C 大调）',
+    caption:'灰块是原图奏出的旋律，圆点是当前 N 个圆奏出的旋律。',
+    pause:'暂停',resume:'继续',replay:'重播',soundOn:'声音：开',soundOff:'声音：关',speed:'速度',maxCircles:'最大圆数',
+    hint:'轻触页面任意位置即可开启声音。',empty:'先输入一个字符，比如 山、♪ 或 π',loading:'正在描摹轮廓…',
+    noOutline:'这个字符没有可描摹的轮廓，换一个试试',terms:'共 {count} 项'}
+};
+function resolveLanguage(locale){const base=String(locale||'').toLowerCase().split(/[-_]/)[0];return Object.hasOwn(translations,base)?base:'en'}
+let language=resolveLanguage(navigator.languages?.[0]||navigator.language),messageKey='';
+const tr=(key,values={})=>(translations[language][key]??translations.en[key]??key).replace(/\{(\w+)\}/g,(match,name)=>values[name]??match);
+function updateControls(){$('#pp').textContent=tr({play:'pause',pause:'resume',done:'replay'}[state]);$('#mu').textContent=tr(muted?'soundOff':'soundOn')}
+function setLanguage(locale){
+  language=resolveLanguage(locale);document.documentElement.lang=language==='zh'?'zh-CN':'en';document.title=tr('title');$('#language').value=language;
+  document.querySelectorAll('[data-i18n]').forEach(element=>element.textContent=tr(element.dataset.i18n));
+  document.querySelectorAll('[data-i18n-aria]').forEach(element=>element.setAttribute('aria-label',tr(element.dataset.i18nAria)));
+  updateControls();msg(messageKey);if(S){ui();if(lastN>=0)updateLive(Math.min(lastN,NPL-1))}
+}
+const FQ=[261.63,293.66,329.63,349.23,392,440,493.88,523.25,587.33,659.25,698.46,783.99],NM=['C4','D4','E4','F4','G4','A4','B4','C5','D5','E5','F5','G5'];
+const C=$('#c'),X=C.getContext('2d'),R=$('#roll'),RX=R.getContext('2d');
+let S=null,stages=[],si=0,tp=0,hold=0,state='play',lastN=-1,spd=1,muted=false,autoN=true,AC,master,K={};
+const msg=key=>{messageKey=key;$('#msg').textContent=key?tr(key):''};
+function colors(){const s=getComputedStyle(document.documentElement);['coral','teal','gold','ink','dim','line','ghost','fill'].forEach(k=>K[k]=s.getPropertyValue('--'+k).trim())}
+
+/* ---------- 文字 -> 位图 -> 轮廓 ---------- */
+function raster(text){
+  const W=1200,H=640,o=document.createElement('canvas');o.width=W;o.height=H;
+  const g=o.getContext('2d',{willReadFrequently:true}),F="'Noto Music','Noto Serif SC','Songti SC','Source Han Serif SC','STSong','SimSun','Times New Roman',serif";
+  const pass=(fs,cx,cy)=>{g.clearRect(0,0,W,H);g.font=fs+'px '+F;g.textAlign='center';g.textBaseline='middle';g.fillStyle='#000';g.fillText(text,cx,cy);
+    const d=g.getImageData(0,0,W,H).data,m=new Uint8Array(W*H);let x0=W,x1=0,y0=H,y1=0;
+    for(let y=0,i=0;y<H;y++)for(let x=0;x<W;x++,i++)if(d[i*4+3]>127){m[i]=1;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
+    return{m,x0,x1,y0,y1}};
+  g.font='200px '+F;const w=g.measureText(text).width||200,fs0=Math.min(200*W*.8/w,H*.5);
+  let r=pass(fs0,W/2,H/2);if(r.x1<r.x0)return null;
+  const k=Math.min(8,W*.92/(r.x1-r.x0+1),H*.9/(r.y1-r.y0+1)),bx=(r.x0+r.x1)/2,by=(r.y0+r.y1)/2;
+  r=pass(fs0*k,W/2-(bx-W/2)*k,H/2-(by-H/2)*k);r.W=W;r.H=H;return r}
+function build(text){const r=raster(text);if(!r)return null;const p=buildPath(contours(r.m,r.W,r.H));if(!p)return null;
+  const s=analyze(p.pts,p.fl);s.trueD=[];for(let n=0;n<NPL;n++){const q=s.pts[Math.floor(n*M/NPL)];s.trueD.push(Math.floor(U(s,q[0],q[1])))}return s}
+
+/* ---------- 声音：note = ⌊|z(t)|⌋ in C major ---------- */
+function audioInit(){const A=window.AudioContext||window.webkitAudioContext;AC=new A();master=AC.createGain();master.gain.value=.6;
+  const cp=AC.createDynamicsCompressor(),dl=AC.createDelay(1),fb=AC.createGain(),wt=AC.createGain();dl.delayTime.value=.27;fb.gain.value=.34;wt.gain.value=.3;
+  master.connect(cp);master.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(wt);wt.connect(cp);cp.connect(AC.destination)}
+function pluck(f,pan,vol,when){if(!AC||muted)return;const t=AC.currentTime+(when||0),g=AC.createGain(),o1=AC.createOscillator(),o2=AC.createOscillator(),g2=AC.createGain();
+  o1.type='triangle';o2.type='sine';o1.frequency.value=f;o2.frequency.value=f*2;g2.gain.value=.28;
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+1.1);
+  o1.connect(g);o2.connect(g2);g2.connect(g);
+  if(AC.createStereoPanner){const p=AC.createStereoPanner();p.pan.value=pan;g.connect(p);p.connect(master)}else g.connect(master);
+  o1.start(t);o2.start(t);o1.stop(t+1.2);o2.stop(t+1.2)}
+function playCol(n){const d=Math.floor(S.apU[n]);pluck(FQ[d],S.apX[n]*.8,.17);updateLive(n)}
+function updateLive(n){const u=S.apU[n],d=Math.floor(u);
+  $('#live').innerHTML=`<span class="go" data-i18n="note">${tr('note')}</span> = ⌊<b class="co">${u.toFixed(2)}</b>⌋ = ${d} → <b class="tl">${NM[d]}</b>`}
+
+/* ---------- 阶段 ---------- */
+const err=N=>Math.sqrt(Math.max(0,S.tot-S.cum[N])/S.tot)*100;
+function trail(){const N=S.N,T=S.terms,c=S.c0,tr=new Float32Array((TT+1)*2);
+  const pos=t=>{let x=c.x,y=c.y;for(let j=0;j<N;j++){const q=T[j],a=q.k*t+q.p;x+=q.a*Math.cos(a);y+=q.a*Math.sin(a)}return[x,y]};
+  for(let i=0;i<=TT;i++){const p=pos(TAU*i/TT);tr[2*i]=p[0];tr[2*i+1]=p[1]}
+  S.tr=tr;S.apU=[];S.apX=[];
+  for(let n=0;n<NPL;n++){const p=pos(TAU*n/NPL);S.apU.push(U(S,p[0],p[1]));S.apX.push(Math.max(-1,Math.min(1,(p[0]-S.bcx)/(S.bw/2))))}}
+const kt=k=>(k==1?'':k==-1?'−':String(k).replace('-','−'))+'t';
+function ui(){const N=S.N,e=err(N),T=S.terms,m=Math.min(N,4);
+  $('#N').textContent=N;$('#E').textContent=(e>=10?e.toFixed(1):e.toFixed(2))+'%';
+  document.querySelectorAll('#dots button').forEach((b,i)=>b.setAttribute('aria-current',i==si));
+  $('#num').innerHTML='<i class="co">z</i>(<i class="co">t</i>) ≈ <i>c</i><sub>0</sub>'+T.slice(0,m).map(q=>` + <span class="tl">${(q.a/S.rmax*100).toFixed(1)}<i>e</i><sup>i(${kt(q.k)}${q.p<0?'−':'+'}${Math.abs(q.p).toFixed(2)})</sup></span>`).join('')+(N>m?` <span class="dm">+ … ${tr('terms',{count:N})}</span>`:'')}
+function go(i){si=i;tp=0;hold=0;lastN=-1;setState('play');S.N=stages[i];trail();ui()}
+function setState(s){state=s;updateControls()}
+function setStages(){const mx=+$('#nm').value;stages=[];for(let n=1;n<mx;n*=2)stages.push(n);stages.push(mx);
+  $('#dots').innerHTML=stages.map((n,i)=>`<button type="button" data-i="${i}">${n}</button>`).join('')}
+async function gen(text){
+  text=(text||'').trim();if(!text){msg('empty');return}
+  msg('loading');await new Promise(r=>setTimeout(r,30));
+  try{await Promise.race([document.fonts.load('100px "Noto Music"',text),new Promise(r=>setTimeout(r,1500))])}catch(e){}
+  const s=build(text);if(!s){msg('noOutline');return}
+  S=s;msg('');
+  if(autoN){const L=[...text].length;$('#nm').value=L<2?256:L<4?512:1024}
+  setStages();fit();go(0);
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches){go(stages.length-1);tp=1;lastN=NPL;setState('done')}}
+
+/* ---------- 绘制 ---------- */
+function fit(){const d=devicePixelRatio||1;[C,R].forEach(c=>{c.width=Math.round(c.clientWidth*d);c.height=Math.round(c.clientHeight*d)});
+  X.setTransform(d,0,0,d,0,0);RX.setTransform(d,0,0,d,0,0);if(!S)return;
+  const w=C.clientWidth,h=C.clientHeight;S.sc=Math.min(w*.84/S.bw,h*.8/S.bh);S.ox=w/2-S.bcx*S.sc;S.oy=h/2-S.bcy*S.sc;
+  const g=new Path2D();S.pts.forEach((p,i)=>{const x=p[0]*S.sc+S.ox,y=p[1]*S.sc+S.oy;i?g.lineTo(x,y):g.moveTo(x,y)});g.closePath();S.ghostP=g}
+function draw(){
+  const w=C.clientWidth,h=C.clientHeight,{sc,ox,oy,terms}=S,N=S.N,done=state=='done';
+  X.clearRect(0,0,w,h);X.lineJoin='round';X.fillStyle=K.ghost;X.fill(S.ghostP,'evenodd');
+  const t=TAU*Math.min(tp,1),u=done?TT:Math.min(TT,Math.floor(tp*TT));let x=S.c0.x,y=S.c0.y;
+  if(!done){const cT=new Path2D(),cC=new Path2D(),wT=new Path2D(),wC=new Path2D(),sp=new Path2D();
+    for(let j=0;j<N;j++){const q=terms[j],a=q.k*t+q.p,nx=x+q.a*Math.cos(a),ny=y+q.a*Math.sin(a),rr=q.a*sc;
+      if(rr>.8){const P=q.k>0?(j<10?cT:wT):(j<10?cC:wC),cx=x*sc+ox,cy=y*sc+oy;P.moveTo(cx+rr,cy);P.arc(cx,cy,rr,0,TAU);sp.moveTo(cx,cy);sp.lineTo(nx*sc+ox,ny*sc+oy)}
+      x=nx;y=ny}
+    X.lineWidth=1.1;X.globalAlpha=.8;X.strokeStyle=K.teal;X.stroke(cT);X.strokeStyle=K.coral;X.stroke(cC);
+    X.globalAlpha=.28;X.strokeStyle=K.teal;X.stroke(wT);X.strokeStyle=K.coral;X.stroke(wC);
+    X.globalAlpha=.55;X.strokeStyle=K.ink;X.stroke(sp);X.globalAlpha=1}
+  const tr=S.tr,pt=i=>[tr[2*i]*sc+ox,tr[2*i+1]*sc+oy];
+  if(done){const f=new Path2D();for(let i=0;i<=TT;i++){const p=pt(i);i?f.lineTo(p[0],p[1]):f.moveTo(p[0],p[1])}f.closePath();X.fillStyle=K.fill;X.fill(f,'evenodd')}
+  const pn=new Path2D(),pb=new Path2D();let pf=-1;
+  for(let i=1;i<=u;i++){const f=S.fl[(((i-1)*M/TT)|0)%M],P=f?pb:pn,a=pt(i-1),b=pt(i);if(f!==pf)P.moveTo(a[0],a[1]);P.lineTo(b[0],b[1]);pf=f}
+  X.strokeStyle=K.coral;X.globalAlpha=.16;X.lineWidth=7;X.stroke(pn);X.globalAlpha=1;X.lineWidth=2.2;X.stroke(pn);
+  X.globalAlpha=.35;X.lineWidth=1;X.stroke(pb);X.globalAlpha=1;
+  if(!done){const px=x*sc+ox,py=y*sc+oy,gr=X.createRadialGradient(px,py,0,px,py,16);gr.addColorStop(0,K.coral);gr.addColorStop(1,'transparent');
+    X.globalAlpha=.7;X.fillStyle=gr;X.beginPath();X.arc(px,py,16,0,TAU);X.fill();X.globalAlpha=1;X.fillStyle=K.ink;X.beginPath();X.arc(px,py,3.2,0,TAU);X.fill()}}
+function drawRoll(){const w=R.clientWidth,h=R.clientHeight,cw=w/NPL,rh=h/12;RX.clearRect(0,0,w,h);
+  RX.fillStyle=K.line;for(let d=0;d<12;d++)RX.fillRect(0,h-(d+.5)*rh-.5,w,d%7?1:2);
+  RX.fillStyle=K.ghost;S.trueD.forEach((d,n)=>RX.fillRect(n*cw+2,h-(d+1)*rh+1,cw-4,rh-2));
+  const ld=Math.min(lastN,NPL-1);RX.strokeStyle=K.teal;RX.globalAlpha=.5;RX.lineWidth=1.2;RX.beginPath();
+  for(let n=0;n<=ld;n++){const px=n*cw+cw/2,py=h-(Math.floor(S.apU[n])+.5)*rh;n?RX.lineTo(px,py):RX.moveTo(px,py)}RX.stroke();RX.globalAlpha=1;
+  RX.fillStyle=K.coral;for(let n=0;n<=ld;n++){RX.beginPath();RX.arc(n*cw+cw/2,h-(Math.floor(S.apU[n])+.5)*rh,Math.min(cw,rh)*(n==ld&&state=='play'?.46:.34),0,TAU);RX.fill()}}
+
+/* ---------- 主循环 ---------- */
+let last=performance.now();
+function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(S&&S.ghostP){
+    if(state=='play'){
+      if(tp<1){tp=Math.min(1,tp+dt*spd/3);const n=Math.min(NPL-1,Math.floor(tp*NPL));while(lastN<n){lastN++;playCol(lastN)}}
+      else{hold+=dt;if(hold>.45){if(si<stages.length-1)go(si+1);else{setState('done');[0,2,4,7,9].forEach((d,i)=>pluck(FQ[d],0,.14,i*.13))}}}}
+    draw();drawRoll()}
+  requestAnimationFrame(frame)}
+
+/* ---------- 交互 ---------- */
+$('#f').onsubmit=e=>{e.preventDefault();gen($('#t').value)};
+$('#chips').innerHTML=['𝄞','♪','山海','龍','Fourier','π','∞'].map(c=>`<button type="button">${c}</button>`).join('');
+$('#chips').onclick=e=>{if(e.target.tagName=='BUTTON'){$('#t').value=e.target.textContent;gen(e.target.textContent)}};
+$('#dots').onclick=e=>{const b=e.target.closest('button');if(b&&S)go(+b.dataset.i)};
+$('#pp').onclick=()=>{if(!S)return;state=='done'?go(0):setState(state=='play'?'pause':'play')};
+$('#rp').onclick=()=>{if(S)go(0)};
+$('#mu').onclick=()=>{muted=!muted;updateControls()};
+$('#language').onchange=e=>setLanguage(e.target.value);
+$('#sp').oninput=e=>spd=+e.target.value;
+$('#nm').onchange=()=>{autoN=false;if(S){setStages();go(0)}};
+const wake=()=>{if(!AC)audioInit();AC.resume();$('#hint').hidden=true};
+addEventListener('pointerdown',wake,{once:true});addEventListener('keydown',wake,{once:true});
+new ResizeObserver(fit).observe(C);new ResizeObserver(fit).observe(R);
+colors();matchMedia('(prefers-color-scheme: dark)').addEventListener('change',colors);
+new MutationObserver(colors).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+setLanguage(language);requestAnimationFrame(frame);gen('𝄞');
+</script>
+</body>
+</html>
